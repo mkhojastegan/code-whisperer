@@ -1,0 +1,13 @@
+# Node modules
+/backend/node_modules
+/frontend/node_modules
+
+# Environment files
+.env
+/backend/.env
+
+# Vite build output
+/frontend/dist
+
+# macOS folders
+.DS_Store
