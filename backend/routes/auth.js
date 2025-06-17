@@ -2,6 +2,7 @@ const express = require('express');
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
+const { protect } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -44,6 +45,32 @@ router.post('/google-signin', async (req, res) => {
         console.error("Authentication error:", error);
         res.status(401).json({ error: "Invalid token or authentication failed." });
     }
+});
+
+router.get('/me', protect, async (req, res) => {
+    // If this passes, we know the user is authenticated
+    // The user's ID is attached to req.userId
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: req.userId },
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json(user);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error retrieving user.', error });
+    }
+});
+
+router.post('/logout', (req, res) => {
+    res.cookie('session_token', '', {
+        httpOnly: true,
+        expires: new Date(0), // Set the cookie to expire immediately
+    });
+    res.status(200).json({ message: 'Logged out user successfully' });
 });
 
 module.exports = router;
