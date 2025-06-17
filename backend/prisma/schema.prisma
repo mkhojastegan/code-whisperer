@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Model for our Users, authenticated via Google
+model User {
+  id          String    @id // Using Google's unique ID as our primary key
+  email       String    @unique
+  name        String?   // Optional as some providers may not share it
+  createdAt   DateTime  @default(now())
+  snippets    Snippet[] // Relation to the Snippet model
+}
+
+// Model for the code snippets
+model Snippet {
+  id          Int       @id @default(autoincrement())
+  codeContent String
+  language    String
+  aiAnalysis  Json      @default("{}") // Using JSON type, default to empty object
+  createdAt   DateTime  @default(now())
+
+  // Relation to the User model
+  author      User      @relation(fields: [authorId], references: [id])
+  authorId    String    // The foreign key linking to the User's id
+}
