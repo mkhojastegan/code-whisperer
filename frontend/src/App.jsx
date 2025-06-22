@@ -11,6 +11,7 @@ function App() {
   const [snippets, setSnippets] = useState([]);
   const [code, setCode] = useState('');
   const [language, setLanguage] = useState('javascript');
+  const [userContext, setUserContext] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState(null);
 
@@ -77,6 +78,7 @@ function App() {
       const res = await axios.post('http://localhost:3001/api/ai/analyze', {
         codeContent: code,
         language,
+        userContext,
       });
 
       // Add analysis on top of our snippets list to instantly update UI
@@ -144,6 +146,14 @@ function App() {
           required
           style={{ display: 'block', margin: '10px 0' }}
         />
+        <textarea
+          value={userContext}
+          onChange={(e) => setUserContext(e.target.value)}
+          placeholder="Optional: Code context (e.g., 'Sort an array of numbers in descending order')"
+          rows="3"
+          cols="80"
+          style={{ display: 'block', margin: '10px 0' }}
+        />
         <button type="submit" disabled={isAnalyzing}>
           {isAnalyzing ? 'Analyzing...' : 'Analyze and Save'}
         </button>
@@ -162,23 +172,69 @@ function App() {
               </pre>
 
               <div>
-                <h4>AI Analysis:</h4>
-                {snippet.aiAnalysis && typeof snippet.aiAnalysis === 'object' && Object.keys(snippet.aiAnalysis).length > 0 ? (
-                  <div>
-                    {snippet.aiAnalysis.bugs && (
-                      <div><strong>Potential Bugs:</strong> <p style={{ whiteSpace: 'pre-wrap' }}>{snippet.aiAnalysis.bugs}</p></div>
-                    )}
-                    {snippet.aiAnalysis.style && (
-                      <div><strong>Style & Readability:</strong> <p style={{ whiteSpace: 'pre-wrap' }}>{snippet.aiAnalysis.style}</p></div>
-                    )}
-                    {snippet.aiAnalysis.explanation && (
-                      <div><strong>Explanation:</strong> <p style={{ whiteSpace: 'pre-wrap' }}>{snippet.aiAnalysis.explanation}</p></div>
-                    )}
-                  </div>
-                ) : (
-                  <p>No analysis available yet.</p>
-                )}
-              </div>
+                  <h4>AI Analysis:</h4>
+                  {snippet.aiAnalysis && typeof snippet.aiAnalysis === 'object' && Object.keys(snippet.aiAnalysis).length > 0 ? (
+                      <div style={{ paddingLeft: '15px' }}>
+
+                          {/* --- Paranoid BUGS Display --- */}
+                          {snippet.aiAnalysis.bugs && (
+                              <div style={{ marginBottom: '10px' }}>
+                                  <strong>Potential Bugs:</strong>
+                                  {Array.isArray(snippet.aiAnalysis.bugs) ? (
+                                      <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                                          {snippet.aiAnalysis.bugs.map((bug, index) => (
+                                              <li key={index}>
+                                                  {typeof bug === 'object' && bug !== null ? (
+                                                      <span>
+                                                          <strong>{bug.severity || 'Issue'}:</strong> {bug.description}
+                                                      </span>
+                                                  ) : (
+                                                      bug
+                                                  )}
+                                              </li>
+                                          ))}
+                                      </ul>
+                                  ) : (
+                                      <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{snippet.aiAnalysis.bugs}</p>
+                                  )}
+                              </div>
+                          )}
+
+                          {snippet.aiAnalysis.style && (
+                              <div style={{ marginBottom: '10px' }}>
+                                  <strong>Style & Readability:</strong>
+                                  {Array.isArray(snippet.aiAnalysis.style) ? (
+                                      <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                                          {snippet.aiAnalysis.style.map((stylePoint, index) => (
+                                              <li key={index}>
+                                                  {typeof stylePoint === 'object' && stylePoint !== null ? (
+                                                      <span>
+                                                          {stylePoint.description}
+                                                          {stylePoint.recommendation && ` (Recommendation: ${stylePoint.recommendation})`}
+                                                      </span>
+                                                  ) : (
+                                                      stylePoint
+                                                  )}
+                                              </li>
+                                          ))}
+                                      </ul>
+                                  ) : (
+                                      <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{snippet.aiAnalysis.style}</p>
+                                  )}
+                              </div>
+                          )}
+
+                          {snippet.aiAnalysis.explanation && (
+                              <div>
+                                  <strong>Explanation:</strong>
+                                  <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{snippet.aiAnalysis.explanation}</p>
+                              </div>
+                          )}
+                      </div>
+                  ) : (
+                      <p>No analysis available yet.</p>
+                  )}
+              </div>              
 
               <button onClick={() => handleDeleteSnippet(snippet.id)} style={{ color: 'red', marginTop: '10px' }}>
                 Delete

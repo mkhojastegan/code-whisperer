@@ -14,7 +14,7 @@ router.use(protect);
 
 // POST /api/ai/analyze
 router.post('/analyze', async (req, res) => {
-    const { codeContent, language } = req.body;
+    const { codeContent, language, userContext } = req.body;
     const authorId = req.userId;
 
     if (!codeContent || !language) {
@@ -22,13 +22,21 @@ router.post('/analyze', async (req, res) => {
     }
 
     try {
+        // Conditionally create a context block for the prompt
+        const contextPromptPart = userContext
+        ? `The user has provided the following context about their code's intent: "${userContext}". 
+        Please consider this context heavily in your analysis, especially for the "explanation" and "bugs" sections.`
+        : `The user has not provided any context. Analyze the code based on its content alone.`;
+
         // Craft the Prompt
         const prompt = `
             You are an expert code reviewer. Your task is to analyze the following ${language} code snippet.
+            ${contextPromptPart}
+
             Provide your analysis in a structured JSON object with three distinct keys: "bugs", "style", and "explanation".
-            - "bugs": Identify potential bugs, errors, or security vulnerabilities. If none, say "No apparent bugs found.".
+            - "bugs": Identify potential bugs, errors, or security vulnerabilities where the code might fail or not meet the user's intent. If none, say "No apparent bugs found.".
             - "style": Suggest improvements for code style, naming conventions, and readability. If code is perfect, say "Excellent style.".
-            - "explanation": Briefly explain what the code does in simple terms.
+            - "explanation": Briefly explain what the code does and whether it aligns with the user's stated intent (if provided).
 
             Here is the code:
             \`\`\`${language}
@@ -67,6 +75,7 @@ router.post('/analyze', async (req, res) => {
             data: {
                 codeContent,
                 language,
+                userContext,
                 aiAnalysis, // Storing the parsed JSON object
                 authorId,
             },
