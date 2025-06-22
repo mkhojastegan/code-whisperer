@@ -68,23 +68,28 @@ function App() {
     }
   }
 
-  const handleCreateSnippet = async (e) => {
+  const handleAnalyzeAndSave = async (e) => {
     e.preventDefault();
     setIsAnalyzing(true);
     setError(null);
+
     try {
-      // TODO: Eventually call an /analyze endpoint, not /snippets directly
-      await axios.post('http://localhost:3001/api/snippets', {
+      const res = await axios.post('http://localhost:3001/api/ai/analyze', {
         codeContent: code,
         language,
       });
-      setCode('');
-      fetchSnippets();
+
+      // Add analysis on top of our snippets list to instantly update UI
+      setSnippets([res.data, ...snippets]);
+
+      setCode(''); // Clear the textarea
+
     } catch (err) {
-      console.error("Error creating snippet:", err);
-      setError("Failed to save snippet.");
+      console.error("Error analyzing snippet:", err);
+      const message = err.response?.data?.message || "Failed to analyze snippet. Please try again";
+      setError(message);
     } finally {
-      setIsAnalyzing(false);
+      setIsAnalyzing(false); // Stop the loading state
     }
   };
 
@@ -121,7 +126,7 @@ function App() {
         <button onClick={handleLogout}>Logout</button>
       </div>
 
-      <form onSubmit={handleCreateSnippet} style={{ marginBottom: '20px' }}>
+      <form onSubmit={handleAnalyzeAndSave} style={{ marginBottom: '20px' }}>
         <h3>Get AI Analysis for a New Snippet</h3>
         <select value={language} onChange={(e) => setLanguage(e.target.value)}>
           <option value="javascript">JavaScript</option>
@@ -140,8 +145,7 @@ function App() {
           style={{ display: 'block', margin: '10px 0' }}
         />
         <button type="submit" disabled={isAnalyzing}>
-          {/* We'll change this text back when we implement the AI */}
-          {isAnalyzing ? 'Saving...' : 'Save Snippet'}
+          {isAnalyzing ? 'Analyzing...' : 'Analyze and Save'}
         </button>
         {error && <p style={{ color: 'red' }}>{error}</p>}
       </form>
